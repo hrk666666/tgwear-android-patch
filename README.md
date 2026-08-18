@@ -66,7 +66,7 @@ tgwear-android-patch/
 # 1. 克隆 Telegram 源码并切到稳定 tag
 git clone https://github.com/DrKLO/Telegram.git
 cd Telegram
-git checkout TMessagesProj_v12.9.2
+git checkout release-11.4.2-5469
 
 # 2. 应用 tgwear 补丁
 bash /path/to/tgwear-android-patch/apply_patches.sh
@@ -288,7 +288,7 @@ adb logcat -s tgwear/Stub tgwear/Router tgwear/Service
 ## 已知限制
 
 1. **SDK 接入需要手工调整**：因小米 interconnect SDK 未公开 maven 坐标，`InterconnectWearConnection.java` 用反射做软依赖，需手动改为直接调用
-2. **Telegram API 签名可能随版本变化**：补丁针对 `TMessagesProj_v12.9.2`，其他版本需要检查 `SendMessagesHelper.sendMessage()` / `MessagesController.markDialogAsRead()` 的参数列表
+2. **Telegram API 签名可能随版本变化**：补丁针对 `release-11.4.2-5469`，其他版本需要检查 `SendMessagesHelper.sendMessage()` / `MessagesController.markDialogAsRead()` 的参数列表
 3. **不处理大消息分片**：interconnect 单帧限制约 64KB，超长消息需要分片（MVP 阶段未实现，限制消息历史 ≤30 条/页）
 4. **不支持媒体消息**：sendSticker 当前返回错误，未来扩展时实现贴纸发送
 

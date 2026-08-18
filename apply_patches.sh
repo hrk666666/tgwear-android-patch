@@ -7,7 +7,7 @@
 #
 # 前置条件：
 #   1. 已经 git clone https://github.com/DrKLO/Telegram.git
-#   2. 已 checkout 到目标 tag（推荐 TMessagesProj_v12.9.2）
+#   2. 已 checkout 到目标 tag（推荐 release-11.4.2-5469）
 #   3. 工作区干净（git status 无变更）
 #
 # 完成后：

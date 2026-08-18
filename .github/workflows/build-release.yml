@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: DrKLO/Telegram
-          ref: TMessagesProj_v12.9.2
+          ref: release-11.4.2-5469
           path: Telegram
           submodules: recursive
 
@@ -142,7 +142,7 @@ jobs:
           body: |
             ## TG Wear Android ${{ github.ref_name }}
 
-            基于 [DrKLO/Telegram TMessagesProj_v12.9.2](https://github.com/DrKLO/Telegram/tree/TMessagesProj_v12.9.2) 改造的手机端配套 App。
+            基于 [DrKLO/Telegram release-11.4.2-5469](https://github.com/DrKLO/Telegram/tree/release-11.4.2-5469) 改造的手机端配套 App。
 
             ### 签名信息
 
