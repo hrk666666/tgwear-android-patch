@@ -43,14 +43,11 @@ jobs:
           distribution: 'temurin'
 
       # 4. 配置 Android SDK（Telegram 需要 platform 34、build-tools、NDK、CMake）
+      #    packages 必须用空格分隔单行（多行 | 会让 sdkmanager 把换行符当成包名一部分）
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: |
-            platforms;android-34
-            build-tools;34.0.0
-            ndk;26.3.11579264
-            cmake;3.22.1
+          packages: 'platforms;android-34 build-tools;34.0.0 ndk;26.3.11579264 cmake;3.22.1'
 
       # 5. 应用补丁 + 复制源码 + 复制签名
       - name: Apply tgwear patches

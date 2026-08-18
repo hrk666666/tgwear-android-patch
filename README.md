@@ -302,5 +302,5 @@ adb logcat -s tgwear/Stub tgwear/Router tgwear/Service
 
 - [DrKLO/Telegram](https://github.com/DrKLO/Telegram)：Telegram for Android 开源实现
 - [小米穿戴第三方 APP 能力开放接口文档 1.4](https://dev.mi.com/)：interconnect 通信能力
-- [vela-watch-design](https://trae.cn/)：设计规范与 InputMethod 输入法组件（仅用于手表端）
-- [vela-quickapp-dev](https://trae.cn/)：快应用 API 文档与开发指南（仅用于手表端）
+- [vela-watch-design](https://www.bandbbs.cn/resources/7086/)：设计规范与 InputMethod 输入法组件（仅用于手表端）
+- [vela-quickapp-dev](https://www.bandbbs.cn/resources/6173/)：快应用 API 文档与开发指南（仅用于手表端）
