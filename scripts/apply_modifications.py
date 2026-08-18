@@ -40,6 +40,27 @@ def write_file(path, content):
         f.write(content)
 
 
+def modify_gradle_wrapper():
+    """DrKLO 用 Gradle 7.0.2（2020 年），不支持 Java 17（需要 >= 7.3）。
+    升级到 7.6.4（最后一个 7.x，兼容 7.0.2 代码，支持 Java 17）。
+    """
+    path = os.path.join(TELEGRAM_ROOT, 'gradle', 'wrapper', 'gradle-wrapper.properties')
+    if not os.path.exists(path):
+        log(f'WARNING: {path} not found')
+        return
+    content = read_file(path)
+    if 'gradle-7.6.4-bin.zip' in content:
+        log('gradle-wrapper already 7.6.4, skip')
+        return
+    content = re.sub(
+        r'distributionUrl=.*gradle-\d+\.\d+[\.\d]*-bin\.zip',
+        'distributionUrl=https\\://services.gradle.org/distributions/gradle-7.6.4-bin.zip',
+        content
+    )
+    write_file(path, content)
+    log('Upgraded gradle wrapper to 7.6.4 for Java 17 support')
+
+
 def modify_cmake_version():
     """DrKLO build.gradle 指定 cmake 3.10.2，但 GitHub Actions runner 只有 3.22.1。"""
     for gradle_file in [
@@ -202,6 +223,7 @@ def main():
         sys.exit(1)
 
     # 执行修改
+    modify_gradle_wrapper()
     modify_cmake_version()
     modify_gradle_properties()
     copy_keystore()
