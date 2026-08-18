@@ -1,6 +1,6 @@
-# Telegram 源码（用户 clone）
-Telegram/
-telegram-source/
+# Telegram 源码（用户 clone）—— 锚定根目录，避免误伤 src/org/telegram/
+/Telegram/
+/telegram-source/
 
 # 编译产物
 build/
