@@ -1,0 +1,165 @@
+name: Build Release APK
+
+# 触发条件：
+#   1. 推送 v* tag 时（自动构建并创建 GitHub Release）
+#   2. 手动触发（Actions 页面 → Run workflow，只上传 artifact）
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# Release 写入需要 GITHUB_TOKEN，默认就有
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build signed release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 180   # DrKLO/Telegram 首次构建很慢（NDK + ffmpeg + openssl）
+
+    steps:
+      # 1. 检出 DrKLO/Telegram 源码（submodules 包含 TMessagesProj 的 native 依赖）
+      - name: Checkout DrKLO/Telegram
+        uses: actions/checkout@v4
+        with:
+          repository: DrKLO/Telegram
+          ref: TMessagesProj_v12.9.2
+          path: Telegram
+          submodules: recursive
+
+      # 2. 检出本 patch 仓库
+      - name: Checkout tgwear-android-patch
+        uses: actions/checkout@v4
+        with:
+          path: tgwear-android-patch
+
+      # 3. 配置 JDK 17
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # 4. 配置 Android SDK（Telegram 需要 platform 34、build-tools、NDK、CMake）
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platforms;android-34
+            build-tools;34.0.0
+            ndk;26.3.11579264
+            cmake;3.22.1
+
+      # 5. 应用补丁 + 复制源码 + 复制签名
+      - name: Apply tgwear patches
+        working-directory: Telegram
+        run: |
+          bash ../tgwear-android-patch/apply_patches.sh
+
+      # 6. 把 tgwear-android-patch/signing/ 里的 keystore 复制到 TMessagesProj/signing/
+      #    （补丁 0005 引用 ${rootProject.projectDir}/signing/tgwear.jks）
+      - name: Verify signing materials
+        run: |
+          ls -la tgwear-android-patch/signing/
+          ls -la Telegram/TMessagesProj/signing/
+          # 验证 keystore 可用
+          keytool -list -v -keystore Telegram/TMessagesProj/signing/tgwear.jks \
+            -storepass tgwear2026 -alias tgwear | head -20
+
+      # 7. 配置 local.properties（Telegram 需要 sdk.dir）
+      - name: Write local.properties
+        working-directory: Telegram
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          # Telegram 用 BUILD_SDK 环境变量指定 AppCenter key 等，无 key 时跳过
+          echo "APP_ID=429320" >> local.properties
+          echo "APP_HASH=b6ada952313db59a2a3a89e0d9aabdc9" >> local.properties
+
+      # 8. 缓存 Gradle 加速
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            Telegram/.gradle
+          key: gradle-${{ runner.os }}-${{ hashFiles('Telegram/TMessagesProj/**/*.gradle*') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      # 9. 授予 gradlew 可执行权限
+      - name: Grant execute permission for gradlew
+        working-directory: Telegram/TMessagesProj
+        run: chmod +x ./gradlew
+
+      # 10. 编译 release APK
+      #     注意：DrKLO/Telegram 默认 release 构建需要 keystore.properties 文件，
+      #     我们通过 0005-signing-config.patch 直接用 signingConfigs.tgwear 引用 jks，
+      #     所以不需要 keystore.properties。
+      - name: Build release APK
+        working-directory: Telegram/TMessagesProj
+        run: |
+          ./gradlew :TMessagesProj:assembleRelease --no-daemon -x lintVitalRelease
+
+      # 11. 列出产物 + 验证签名
+      - name: List and verify APK
+        run: |
+          echo "=== Build outputs ==="
+          find Telegram/TMessagesProj/build/outputs/apk -type f -name "*.apk"
+          APK=$(find Telegram/TMessagesProj/build/outputs/apk/release -name "*.apk" | head -1)
+          echo "=== APK info ==="
+          ls -lh "$APK"
+          echo "=== APK signing info ==="
+          $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs "$APK" | head -20
+
+      # 12. 重命名为规范名称
+      - name: Rename APK
+        id: rename
+        run: |
+          APK=$(find Telegram/TMessagesProj/build/outputs/apk/release -name "*.apk" | head -1)
+          VERSION=${GITHUB_REF_NAME:-dev}
+          DEST="tgwear-android-${VERSION}.apk"
+          cp "$APK" "$DEST"
+          echo "dest=$DEST" >> $GITHUB_OUTPUT
+          ls -lh "$DEST"
+
+      # 13. 上传到 Actions artifact（无论 tag 还是 workflow_dispatch 都上传）
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tgwear-android-release-apk
+          path: ${{ steps.rename.outputs.dest }}
+          retention-days: 30
+
+      # 14. 仅 tag 推送时创建 GitHub Release
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.rename.outputs.dest }}
+          name: TG Wear Android ${{ github.ref_name }}
+          body: |
+            ## TG Wear Android ${{ github.ref_name }}
+
+            基于 [DrKLO/Telegram TMessagesProj_v12.9.2](https://github.com/DrKLO/Telegram/tree/TMessagesProj_v12.9.2) 改造的手机端配套 App。
+
+            ### 签名信息
+
+            - 使用本仓库 `signing/tgwear.jks` 签名
+            - 与快应用端 `tgwear-quickapp/sign/{debug,release}/*.pem` 同源
+            - 两端签名一致是 interconnect 通信的前提
+
+            ### 安装
+
+            1. 卸载已安装的官方 Telegram（包名冲突会安装失败，本 App 包名已改为 `com.hrk.tgwear`，但同一签名体系下仍可能冲突）
+            2. `adb install -r tgwear-android-${{ github.ref_name }}.apk`
+            3. 打开 TG Wear App，按官方流程登录 Telegram
+            4. 配套手环端：[tgwear-quickapp releases](https://github.com/hrk666666/tgwear-quickapp/releases)
+
+            ### 对应的快应用端
+
+            见 [tgwear-quickapp ${{ github.ref_name }}](https://github.com/hrk666666/tgwear-quickapp/releases/tag/${{ github.ref_name }})
+          draft: false
+          prerelease: false
+          generate_release_notes: false
