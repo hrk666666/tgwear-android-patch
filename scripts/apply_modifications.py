@@ -41,24 +41,25 @@ def write_file(path, content):
 
 
 def modify_gradle_wrapper():
-    """DrKLO 用 Gradle 7.0.2（2020 年），不支持 Java 17（需要 >= 7.3）。
-    升级到 7.6.4（最后一个 7.x，兼容 7.0.2 代码，支持 Java 17）。
+    """DrKLO 的 AGP 'com.android.internal.version-check' 要求 Gradle >= 8.6，
+    7.x 会在 evaluate build.gradle 时被直接拒绝（即使 7.6.4 支持 Java 17 也不行）。
+    升级到 8.7（8.x 稳定版，支持 Java 17/21，满足 AGP 最低要求）。
     """
     path = os.path.join(TELEGRAM_ROOT, 'gradle', 'wrapper', 'gradle-wrapper.properties')
     if not os.path.exists(path):
         log(f'WARNING: {path} not found')
         return
     content = read_file(path)
-    if 'gradle-7.6.4-bin.zip' in content:
-        log('gradle-wrapper already 7.6.4, skip')
+    if 'gradle-8.7-bin.zip' in content:
+        log('gradle-wrapper already 8.7, skip')
         return
     content = re.sub(
         r'distributionUrl=.*gradle-\d+\.\d+[\.\d]*-bin\.zip',
-        'distributionUrl=https\\://services.gradle.org/distributions/gradle-7.6.4-bin.zip',
+        'distributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-bin.zip',
         content
     )
     write_file(path, content)
-    log('Upgraded gradle wrapper to 7.6.4 for Java 17 support')
+    log('Upgraded gradle wrapper to 8.7 (AGP requires >= 8.6, supports Java 17)')
 
 
 def modify_cmake_version():
