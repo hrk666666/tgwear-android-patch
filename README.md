@@ -1,13 +1,20 @@
-# tgwear-android-patch
+# tgwear-android-patch · 手机端桥接
+
+[![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](./LICENSE)
+[![Source: DrKLO/Telegram](https://img.shields.io/badge/Source-DrKLO%2FTelegram-3DDC84.svg)](https://github.com/DrKLO/Telegram)
+[![Companion: Quick-app](https://img.shields.io/badge/Companion-Vela%20Quick--app-ff6900.svg)](https://github.com/hrk666666/tgwear-quickapp)
 
 把开源 Telegram for Android（[DrKLO/Telegram](https://github.com/DrKLO/Telegram)）改造成 Vela 穿戴快应用 TG Wear 的手机端配套 App。
+
+> 配套快应用端：[hrk666666/tgwear-quickapp](https://github.com/hrk666666/tgwear-quickapp)（运行在小米手环/手表上的 Telegram 客户端）。
 
 ## 设计原则
 
 1. **完全基于开源 Telegram 源码**，不引入第三方 Telegram 客户端库（如 TDLib），保留官方 MTProto 实现
 2. **零侵入式改造**：所有新增代码放在 `org.telegram.tgwear` 子包下，不修改任何 `org.telegram.messenger`/`org.telegram.ui` 既有类的逻辑
-3. **通过 4 个补丁 + 一组新增 Java 文件**完成接入，所有改动可一键 `git revert`
+3. **通过 5 个补丁 + 一组新增 Java 文件**完成接入，所有改动可一键 `git revert`
 4. **包名统一为 `com.hrk.tgwear`**（与手表端快应用 `manifest.json` 中的 `package` 完全一致，interconnect 路由要求）
+5. **统一签名**：内置 keystore，与快应用端 pem 同源
 
 ## 目录结构
 
@@ -170,6 +177,76 @@ adb install -r build/outputs/apk/release/TMessagesProj-release.apk
 - `update.newMessage`：订阅 `NotificationCenter.didReceivedNewMessages` 转发
 - `update.connectionState`：interconnect 连接状态变化时推送
 
+## 架构
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Xiaomi Vela 穿戴设备                                          │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ tgwear-quickapp（快应用端）                            │  │
+│  │  - splash / chats / chat / setting 4 个页面             │  │
+│  │  - InputMethod 自定义键盘                              │  │
+│  │  - api.js JSON-RPC 客户端                              │  │
+│  └─────────────┬──────────────────────────────────────────┘  │
+│                │ @system.interconnect                          │
+└────────────────┼─────────────────────────────────────────────┘
+                 │ JSON-RPC over Bluetooth
+┌────────────────┼─────────────────────────────────────────────┐
+│ Android Phone  ▼                                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ tgwear-android-patch（本仓库，基于 DrKLO/Telegram）    │  │
+│  │  - WearBridgeService  前台 Service                     │  │
+│  │  - BridgeRouter       JSON-RPC 路由                    │  │
+│  │  - AuthHandler        auth.*                           │  │
+│  │  - DialogsHandler     dialogs.get                      │  │
+│  │  - MessagesHandler    messages.getHistory / sendText   │  │
+│  │  - NotificationCenterBridge 推送事件                  │  │
+│  │  - MessagesController / SendMessagesHelper（原生）    │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                 │                                              │
+│                 ▼ MTProto over TCP                             │
+│        ┌─────────────────────┐                                 │
+│        │ Telegram Datacenter │                                 │
+│        └─────────────────────┘                                 │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## 贡献
+
+欢迎 Issue / PR。
+
+### 贡献流程
+
+1. Fork 本仓库
+2. 创建分支：`git checkout -b feature/your-feature`
+3. 提交：`git commit -m "feat: add your feature"`（推荐 [Conventional Commits](https://www.conventionalcommits.org/) 规范）
+4. 推送：`git push origin feature/your-feature`
+5. 发起 Pull Request 到 `main` 分支
+
+### 协议同步约定
+
+修改 RPC 协议时必须同步修改两端：
+
+| 修改位置 | 文件 |
+|---|---|
+| 手机端方法名 | `src/org/telegram/tgwear/WearConstants.java` |
+| 手表端方法名 | `tgwear-quickapp/src/utils/api.js` |
+| 协议文档 | `.trae/documents/plan-quickapp-tg.md` 第四节 |
+
+### 代码规范
+
+- Java：遵循 [Google Java Style](https://google.github.io/styleguide/javaguide.html)
+- 补丁：每个补丁聚焦一个改动点，commit message 用英文
+- 新增源码：放在 `org.telegram.tgwear` 子包下，不修改 `org.telegram.messenger` 既有类
+
+## Roadmap
+
+- [ ] **v0.2.0**：贴纸发送支持（`messages.sendSticker`）
+- [ ] **v0.3.0**：媒体消息预览（缩略图）
+- [ ] **v0.4.0**：大消息分片（>64KB）
+- [ ] **v0.5.0**：群组信息查看
+- [ ] **v1.0.0**：完整功能对齐 Telegram Lite
+
 ## 调试
 
 ### Stub 模式
@@ -215,14 +292,15 @@ adb logcat -s tgwear/Stub tgwear/Router tgwear/Service
 3. **不处理大消息分片**：interconnect 单帧限制约 64KB，超长消息需要分片（MVP 阶段未实现，限制消息历史 ≤30 条/页）
 4. **不支持媒体消息**：sendSticker 当前返回错误，未来扩展时实现贴纸发送
 
-## 协议
+## License
+
+[GPL v2](./LICENSE) © 2026 hrk666666
 
 继承自 DrKLO/Telegram 的 GPL v2 协议，修改后的代码必须开源。
 
-## 与手表端的协议同步
+## 致谢
 
-修改任何 RPC 方法名/参数/返回字段时，必须同步修改：
-
-1. 本目录 `src/org/telegram/tgwear/WearConstants.java`
-2. 手表端 `tgwear-quickapp/src/utils/api.js`
-3. 计划文档 `.trae/documents/plan-quickapp-tg.md` 第四节
+- [DrKLO/Telegram](https://github.com/DrKLO/Telegram)：Telegram for Android 开源实现
+- [小米穿戴第三方 APP 能力开放接口文档 1.4](https://dev.mi.com/)：interconnect 通信能力
+- [vela-watch-design](https://trae.cn/)：设计规范与 InputMethod 输入法组件（仅用于手表端）
+- [vela-quickapp-dev](https://trae.cn/)：快应用 API 文档与开发指南（仅用于手表端）
