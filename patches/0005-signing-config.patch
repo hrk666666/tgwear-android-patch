@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: tgwear <tgwear@example.com>
+Date: Tue, 18 Aug 2026 00:00:00 +0800
+Subject: [PATCH 5/5] build: 配置签名（与手表端快应用签名一致）
+
+把 tgwear-android-patch/signing/tgwear.jks 直接复制到
+TMessagesProj/signing/tgwear.jks，由 build.gradle 引用。
+
+store/key 密码均为 tgwear2026（开源仓库可见，与手表端 .pem 同源）。
+
+---
+ TMessagesProj/build.gradle | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/TMessagesProj/build.gradle b/TMessagesProj/build.gradle
+--- a/TMessagesProj/build.gradle
++++ b/TMessagesProj/build.gradle
+@@
+ android {
++    // tgwear: 统一签名配置（与手表端快应用 sign/{debug,release}/*.pem 同源）
++    signingConfigs {
++        tgwear {
++            storeFile file("${rootProject.projectDir}/signing/tgwear.jks")
++            storePassword "tgwear2026"
++            keyAlias "tgwear"
++            keyPassword "tgwear2026"
++        }
++    }
++
+     defaultConfig {
+@@
+     }
+     buildTypes {
+         debug {
++            signingConfig signingConfigs.tgwear
+         }
+         release {
++            signingConfig signingConfigs.tgwear
+         }
+     }
+ }

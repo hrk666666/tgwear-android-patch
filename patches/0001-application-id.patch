@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: tgwear <tgwear@example.com>
+Date: Tue, 18 Aug 2026 00:00:00 +0800
+Subject: [PATCH 1/4] build: 修改 applicationId 为 com.hrk.tgwear
+
+包名必须与手表端快应用 manifest.json 中的 package 字段完全一致，
+否则 interconnect 通信会被路由到错误的 App。
+
+---
+ TMessagesProj/build.gradle | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/TMessagesProj/build.gradle b/TMessagesProj/build.gradle
+index 0000000..1111111 100644
+--- a/TMessagesProj/build.gradle
++++ b/TMessagesProj/build.gradle
+@@
+-        applicationId "org.telegram.messenger"
++        applicationId "com.hrk.tgwear"
+@@

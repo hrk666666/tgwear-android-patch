@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: tgwear <tgwear@example.com>
+Date: Tue, 18 Aug 2026 00:00:00 +0800
+Subject: [PATCH 2/4] build: 加入小米穿戴 interconnect SDK 依赖
+
+把 com.mi.wear.interconnect-1.4.aar 放到 TMessagesProj/libs/ 后，
+通过 fileTree 包含进编译。该 SDK 提供 Android ↔ Vela 穿戴设备的
+通信通道，对应手表端 @system.interconnect API。
+
+同时加入 org.json:json（消息序列化用）。
+
+---
+ TMessagesProj/build.gradle | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/TMessagesProj/build.gradle b/TMessagesProj/build.gradle
+--- a/TMessagesProj/build.gradle
++++ b/TMessagesProj/build.gradle
+@@
+ dependencies {
++    // 小米穿戴 interconnect SDK（开发者自行获取后放入 libs/）
++    implementation fileTree(include: ['*.aar', '*.jar'], dir: 'libs')
++
++    // 桥接协议使用 org.json（Telegram 已包含，这里仅为保险）
++    implementation 'org.json:json:20240303'
++
+     // 现有依赖...
+ }

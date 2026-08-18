@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: tgwear <tgwear@example.com>
+Date: Tue, 18 Aug 2026 00:00:00 +0800
+Subject: [PATCH 4/4] ApplicationLoader: 启动时拉起 WearBridgeService
+
+在 ApplicationLoader.onCreate() 末尾、ProxyRotationController.init() 之后，
+启动 WearBridgeService。这样 App 一启动桥接就上线，无需等待用户操作。
+
+Service 内部会自检 UserConfig 登录状态，未登录时仅维持 interconnect 连接
+并在手表端拉取 auth.getState 时返回未授权。
+
+---
+ .../main/java/org/telegram/messenger/ApplicationLoader.java  | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java b/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java
+index 0000000..3333333 100644
+--- a/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java
++++ b/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java
+@@
+         AndroidUtilities.runOnUIThread(ApplicationLoader::startPushService);
+         LauncherIconController.tryFixLauncherIconIfNeeded();
+         ProxyRotationController.init();
++
++        // tgwear: 启动桥接 Service（前台 Service，保持 interconnect 通道在线）
++        try {
++            applicationContext.startForegroundService(
++                new Intent(applicationContext, org.telegram.tgwear.WearBridgeService.class));
++        } catch (Throwable ignore) {
++            FileLog.e("tgwear: start WearBridgeService failed", ignore);
++        }
+     }

@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: tgwear <tgwear@example.com>
+Date: Tue, 18 Aug 2026 00:00:00 +0800
+Subject: [PATCH 3/4] manifest: 注册 WearBridgeService、BootReceiver 与权限
+
+WearBridgeService 是 Telegram 与手表端通信的桥接前台 Service：
+- 接收手表端的 JSON-RPC 请求，调用 MessagesController / SendMessageHelper 等
+- 监听 NotificationCenter 的新消息事件，推送 update.newMessage 到手表
+- 前台 Service 类型为 dataSync，保证不被系统强杀
+
+BootReceiver 用于开机后自动重启桥接 Service（可选）。
+
+---
+ TMessagesProj/src/main/AndroidManifest.xml | 26 ++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/TMessagesProj/src/main/AndroidManifest.xml b/TMessagesProj/src/main/AndroidManifest.xml
+index 0000000..2222222 100644
+--- a/TMessagesProj/src/main/AndroidManifest.xml
++++ b/TMessagesProj/src/main/AndroidManifest.xml
+@@ -3,6 +3,13 @@
+     <!-- Telegram 现有权限 -->
+     <uses-permission android:name="android.permission.INTERNET" />
+
++    <!-- tgwear: 桥接 Service 所需 -->
++    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
++    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
++    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
++    <!-- tgwear: 开机自启（可选） -->
++    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
++
+     <application
+         android:name="org.telegram.messenger.ApplicationLoader"
+         android:allowBackup="false"
+         ...>
+
++        <!-- tgwear: 桥接 Service -->
++        <service
++            android:name="org.telegram.tgwear.WearBridgeService"
++            android:enabled="true"
++            android:exported="false"
++            android:foregroundServiceType="dataSync" />
++
++        <!-- tgwear: 开机自启接收器 -->
++        <receiver
++            android:name="org.telegram.tgwear.BootReceiver"
++            android:enabled="true"
++            android:exported="true">
++            <intent-filter>
++                <action android:name="android.intent.action.BOOT_COMPLETED" />
++            </intent-filter>
++        </receiver>
++
+         <!-- 现有 Activity 配置 ... -->
+
+     </application>

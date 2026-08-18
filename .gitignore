@@ -1,0 +1,20 @@
+# Telegram 源码（用户 clone）
+Telegram/
+telegram-source/
+
+# 编译产物
+build/
+*.apk
+*.aab
+*.dex
+*.iml
+.gradle/
+local.properties
+
+# IDE
+.idea/
+*.swp
+
+# === 签名材料：本仓库需要提交（与手表端快应用签名一致） ===
+# 故意不忽略 signing/ 下的任何文件
+!signing/
