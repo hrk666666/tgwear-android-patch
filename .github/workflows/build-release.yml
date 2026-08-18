@@ -85,9 +85,9 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('Telegram/TMessagesProj/**/*.gradle*') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      # 9. 授予 gradlew 可执行权限
+      # 9. 授予 gradlew 可执行权限（gradlew 在 Telegram 根目录，不在 TMessagesProj）
       - name: Grant execute permission for gradlew
-        working-directory: Telegram/TMessagesProj
+        working-directory: Telegram
         run: chmod +x ./gradlew
 
       # 10. 编译 release APK
@@ -95,7 +95,7 @@ jobs:
       #     我们通过 0005-signing-config.patch 直接用 signingConfigs.tgwear 引用 jks，
       #     所以不需要 keystore.properties。
       - name: Build release APK
-        working-directory: Telegram/TMessagesProj
+        working-directory: Telegram
         run: |
           ./gradlew :TMessagesProj:assembleRelease --no-daemon -x lintVitalRelease
 
