@@ -78,6 +78,33 @@ def modify_cmake_version():
             log(f'Modified {gradle_file}: cmake 3.10.2 -> 3.22.1')
 
 
+def modify_google_services():
+    """APP_PACKAGE 改成了 com.hrk.tgwear，但 google-services.json 里只有
+    org.telegram.messenger / .beta / .web 三个 client，导致
+    processAfatReleaseGoogleServices 报 'No matching client found for package name'。
+
+    把第一个 client（org.telegram.messenger，即正式版）的 package_name 改成
+    APP_PACKAGE。只替换带引号的精确字符串，避免误伤 beta/web。
+    """
+    for gs_path in [
+        'TMessagesProj_App/google-services.json',
+        'TMessagesProj_AppHockeyApp/google-services.json',
+        'TMessagesProj_AppHuawei/google-services.json',
+        'TMessagesProj_AppStandalone/google-services.json',
+    ]:
+        path = os.path.join(TELEGRAM_ROOT, gs_path)
+        if not os.path.exists(path):
+            continue
+        content = read_file(path)
+        if 'com.hrk.tgwear' in content:
+            continue
+        # 只匹配 "org.telegram.messenger"（带引号），不影响 .beta / .web
+        if '"org.telegram.messenger"' in content:
+            content = content.replace('"org.telegram.messenger"', '"com.hrk.tgwear"')
+            write_file(path, content)
+            log(f'Modified {gs_path}: package_name -> com.hrk.tgwear')
+
+
 def modify_gradle_properties():
     """Set APP_PACKAGE and signing credentials in gradle.properties."""
     path = os.path.join(TELEGRAM_ROOT, 'gradle.properties')
@@ -226,6 +253,7 @@ def main():
     # 执行修改
     modify_gradle_wrapper()
     modify_cmake_version()
+    modify_google_services()
     modify_gradle_properties()
     copy_keystore()
     modify_android_manifest()
