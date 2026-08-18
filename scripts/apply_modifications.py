@@ -40,6 +40,22 @@ def write_file(path, content):
         f.write(content)
 
 
+def modify_cmake_version():
+    """DrKLO build.gradle 指定 cmake 3.10.2，但 GitHub Actions runner 只有 3.22.1。"""
+    for gradle_file in [
+        'TMessagesProj/build.gradle',
+        'TMessagesProj_App/build.gradle',
+    ]:
+        path = os.path.join(TELEGRAM_ROOT, gradle_file)
+        if not os.path.exists(path):
+            continue
+        content = read_file(path)
+        if "version '3.10.2'" in content:
+            content = content.replace("version '3.10.2'", "version '3.22.1'")
+            write_file(path, content)
+            log(f'Modified {gradle_file}: cmake 3.10.2 -> 3.22.1')
+
+
 def modify_gradle_properties():
     """Set APP_PACKAGE and signing credentials in gradle.properties."""
     path = os.path.join(TELEGRAM_ROOT, 'gradle.properties')
@@ -186,6 +202,7 @@ def main():
         sys.exit(1)
 
     # 执行修改
+    modify_cmake_version()
     modify_gradle_properties()
     copy_keystore()
     modify_android_manifest()

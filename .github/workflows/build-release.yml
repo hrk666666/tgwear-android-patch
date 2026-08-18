@@ -38,7 +38,7 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-34 build-tools;34.0.0 ndk;21.4.7075529 cmake;3.10.2'
+          packages: 'platforms;android-34 build-tools;34.0.0 ndk;21.4.7075529'
 
       # 用 Python 脚本直接修改 DrKLO 文件（替代 git apply patch，更可靠）
       - name: Apply tgwear modifications
